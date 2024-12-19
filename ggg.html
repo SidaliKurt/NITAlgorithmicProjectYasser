@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronous File System Access</title>
+</head>
+<body>
+    <h1>Using FileSystemSyncAccessHandle (Synchronous)</h1>
+    <button id="selectFolder">Select Folder</button>
+    <button id="saveFile">Save File</button>
+    <textarea id="textInput" rows="10" cols="50" placeholder="Enter text to save"></textarea>
+
+    <script>
+        async function saveFileToDirectorySync(directoryHandle, fileName, content) {
+            try {
+                // Request permission for write access to the directory
+                const permission = await directoryHandle.requestPermission({ mode: 'readwrite' });
+                if (permission !== 'granted') {
+                    alert('Permission denied.');
+                    return;
+                }
+
+                // Get file handle synchronously
+                const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+
+                // Get the file access handle (synchronous)
+                const fileAccessHandle = await fileHandle.createSyncAccessHandle();
+
+                // Write to file synchronously (this is a synchronous operation)
+                fileAccessHandle.write(content);
+
+                // Close the handle after writing
+                fileAccessHandle.close();
+
+                alert('File saved successfully!');
+            } catch (err) {
+                console.error('Error saving file:', err);
+                alert('Failed to save file.');
+            }
+        }
+
+        document.getElementById('selectFolder').addEventListener('click', async () => {
+            try {
+                const directoryHandle = await window.showDirectoryPicker();
+                alert('Folder selected!');
+            } catch (err) {
+                console.error('Error selecting folder:', err);
+            }
+        });
+
+        document.getElementById('saveFile').addEventListener('click', async () => {
+            try {
+                const directoryHandle = await window.showDirectoryPicker();
+                const content = document.getElementById('textInput').value;
+
+                if (!content.trim()) {
+                    alert('Please enter some text before saving.');
+                    return;
+                }
+
+                const fileName = 'example.txt';
+                await saveFileToDirectorySync(directoryHandle, fileName, content);
+            } catch (err) {
+                console.error('Error accessing directory or saving file:', err);
+            }
+        });
+    </script>
+</body>
+</html>
