@@ -8,6 +8,7 @@ typedef struct tree{
 	int keyc;
 	int chdc;
 	struct tree *parn;
+	int isLeaf;
 }tree;
 
 int order;
@@ -28,18 +29,22 @@ void addToAry(int *keys, int *keyc, int val){
 }
 
 
-
-
 void search(tree *head){
 	
 }
 
-void add(tree *head, int val){
-	if(head==NULL) head=malloc(sizeof(tree *));
+BTree* add(tree *head, int val){
+	if(head==NULL){
+		head=malloc(sizeof(tree *));
+		head->isLeaf=0;
+	}else{
+		head->isLeaf=1;
+	}
 	if(head->keyc<order-1){
 		addToAry(head->keys, head->&keyc, val);
 	}
-	
+	head->chdc=0;
+	return head;
 }
 
 void delete(tree *head, int val){
@@ -74,7 +79,7 @@ int isBTree(tree *root){
 int main(){
 	order=4;
 	int val[]={ 11, 55, 99, 22, 45, 78, 56, 87, 78, 4, 47, 8, 98, 35, 12 };
-	tree *head=malloc(sizeof(tree *));
+	tree *head=malloc(NULL);
 	for(int i=0;i<sizeof(val)/sizeof(val[0]);i++){
 		add(head,val[i]);
 	}
