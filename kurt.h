@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define COUNT_ARGS(...) COUNT_ARGS_IMPL(__VA_ARGS__, 5, 4, 3, 2, 1)
+#define COUNT_ARGS_IMPL(_1, _2, _3, _4, _5, N, ...) N
+
 const char* AS_ANGLE_LT = "\xC2\xAB"; // «
 const char* AS_ANGLE_RT = "\xC2\xBB"; // »
 const char* AS_ARROW_UP = "\xE2\x86\x91"; // ↑
@@ -76,7 +79,8 @@ enum colors {
     reset=0,
     bold,
     dim,
-    underline=4,
+    italian,
+    underline,
     blink,
     invert,
     hidden,
@@ -123,6 +127,31 @@ enum colors {
     bgLightCyan,
     bgWhite
 };
+
+void printByLen(char *str,int len){
+    printf("Printing %d bytes: ",len);
+    for(int i=0;i<len;i++){
+        printf("%c ",str[i]);
+    }
+
+}
+
+void newError(char *str,...){
+    va_list args;
+    va_start(args,str);
+    vfprintf(stderr,str,args);
+    va_end(args);
+    exit(1);
+}
+
+void debugBuffer(char *buf){
+    int len=strlen(buf);
+    printf("Buffer of %d bytes: \e[1m",len);
+    for(int i=0;i<len;i++){
+        printf("%x ",buf[i]);
+    }
+    printf("\e[0m\n");
+}
 
 typedef struct{
     int len;
@@ -176,49 +205,56 @@ canvas newCanvas(int w,int h){
     return c;
 }
 
-void box(char *str){
+char *box(char *str){
     int len=strlen(str);
-    //char *buf = (char*)malloc((len+2)*3+1);
-    char *str1=(char*)malloc(len+2*3*len+2*3*3+4+1);
-    sprintf(str1,"%s%s%s\n%s%s%s\n%s%s%s\n",AS_BOX_UP_LT,AS_BOX_HL,AS_BOX_UP_RT,AS_BOX_VL,str,AS_BOX_VL,AS_BOX_DN_LT,AS_BOX_HL,AS_BOX_DN_RT);
-    printf("%s%s%s\n%s%s%s\n%s%s%s\n",AS_BOX_UP_LT_DB,AS_BOX_HL_DB,AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str,AS_BOX_VL_DB,AS_BOX_DN_LT_DB,AS_BOX_HL_DB,AS_BOX_DN_RT_DB);
-    //return buf;
-    printf("%s",str1);
-    int *r=strinf("gdfgdhrdhr\nsgergrrr\ndsggsgr");
-    printf("\n%d %d %d\n",r[0],r[1],r[2]);
+    char *res=(char*)malloc(3*3*len+3*3*3+1);
+    char *p=res;
+    p+=sprintf(p,"%s",AS_BOX_UP_LT);
+    for(int i=0;i<len;i++){
+        p+=sprintf(p,"%s",AS_BOX_HL);
+    }
+    p+=sprintf(p,"%s\n%s%s%s\n%s",AS_BOX_UP_RT,AS_BOX_VL,str,AS_BOX_VL,AS_BOX_DN_LT);
+    for(int i=0;i<len;i++){
+        p+=sprintf(p,"%s",AS_BOX_HL);
+    }
+    p+=sprintf(p,"%s",AS_BOX_DN_RT);
+    return res;
 }
 
 char *box_db(char *str){
-    int *r=strinf(str);
-    sprintf(str,"",AS_BOX_UP_LT_DB,AS_BOX_HL_DB,AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str,AS_BOX_VL_DB,AS_BOX_DN_LT_DB,AS_BOX_HL_DB,AS_BOX_DN_RT_DB);
-    return str;
+    int len=strlen(str);
+    char *res=(char*)malloc(3*3*len+3*3*3+1);
+    char *p=res;
+    p+=sprintf(p,"%s",AS_BOX_UP_LT_DB);
+    for(int i=0;i<len;i++){
+        p+=sprintf(p,"%s",AS_BOX_HL_DB);
+    }
+    p+=sprintf(p,"%s\n%s%s%s\n%s",AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str,AS_BOX_VL_DB,AS_BOX_DN_LT_DB);
+    for(int i=0;i<len;i++){
+        p+=sprintf(p,"%s",AS_BOX_HL_DB);
+    }
+    p+=sprintf(p,"%s",AS_BOX_DN_RT_DB);
+    return res;
 }
 
-char *color(char *str,unsigned int n,...){
+char *color(char *str, int n, ...){
     va_list args;
-    va_start(args,n);
+    va_start(args, n);
     int clr[n];
     for (int i = 0; i < n; i++){
         clr[i] = va_arg(args, int);
     }
     va_end(args);
-    int len=strlen(str);
-    char *res=(char *)malloc(len+2*n-1+8+1);
-    sprintf(res,"\e[%d",clr[0],"\e[0m");
-    for(int i=0;i<n;i++){
-        res[i+3]=clr[i];
+
+    int len = strlen(str);
+    char *res = (char *)malloc(len + 10 * n + 5);
+    char *p = res;
+
+    p += sprintf(p, "\e[%d", clr[0]);
+    for (int i = 1; i < n; i++){
+        p += sprintf(p, ";%d", clr[i]);
     }
-    n+=3;
-    res[n++]='m';
-    for(int i=0;i<len;i++){
-        res[n++]=str[i];
-    }
-    res[n++]='\\';
-    res[n++]='e';
-    res[n++]='[';
-    res[n++]='0';
-    res[n++]='m';
-    res[n]='\0';
+    p += sprintf(p, "m%s\e[0m", str);
     return res;
 }
 
@@ -232,25 +268,20 @@ char* utf8(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b
     return buf;
 }
 
-void insert(canvas canv,char *str,int x,int y){
-    strInf inf=getStrInf(canv.buf);
+void insertStr(canvas canv,char *str,int x,int y){
+    strInf inf=getStrInf(str);
     if(x>canv.w||y>canv.h){
         newError("Out of bounds: (%d,%d) in canvas of %dx%d",x,y,canv.w,canv.h);
         return;
     }
-    for(int i=0;i<canv.len;i++){
-        canv.buf[(y-1)*(inf.cols+1)+x-1+i]=str[i];
+    for(int i=0;i<inf.len;i++){
+        canv.buf[((canv.w+1)*y)+x+i]=str[i];
     }
 }
+
+
 
 void display(canvas canv){
     printf("Canvas of %dx%d:\n%s",canv.w,canv.h,canv.buf);
 }
 
-void newError(char *str,...){
-    va_list args;
-    va_start(args,str);
-    vfprintf(stderr,str,args);
-    va_end(args);
-    exit(1);
-}
