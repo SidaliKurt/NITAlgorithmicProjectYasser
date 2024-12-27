@@ -2,10 +2,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <termios.h>
+#include <time.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <pthread.h>
 
 #define COUNT_ARGS(...) COUNT_ARGS_IMPL(__VA_ARGS__, 5, 4, 3, 2, 1)
 #define COUNT_ARGS_IMPL(_1, _2, _3, _4, _5, N, ...) N
 
+
+const char* TRACK_MOUSE_EN = "\033[?1003h\033[?1000h";
+const char* TRACK_MOUSE_DS = "\033[?1003l\033[?1000l";
+//Renderer Constants
 const char* AS_ANGLE_LT = "\xC2\xAB"; // «
 const char* AS_ANGLE_RT = "\xC2\xBB"; // »
 const char* AS_ARROW_UP = "\xE2\x86\x91"; // ↑
@@ -76,7 +86,7 @@ const char* AS_EXP_THR = "\xC2\xB3"; // ³
 const char* AS_NBSP = "\xC2\xA0"; //  
 
 enum colors {
-    reset=0,
+    reset,
     bold,
     dim,
     italian,
@@ -84,12 +94,14 @@ enum colors {
     blink,
     invert,
     hidden,
+    strikeThrough,
     resetBold=21,
     resetDim,
     resetUnderline,
     resetBlink,
     resetInvert,
     resetHidden,
+    resetStrikeThrough,
     fgBlack=30,
     fgRed,
     fgGreen,
@@ -126,6 +138,24 @@ enum colors {
     bgLightMagenta,
     bgLightCyan,
     bgWhite
+};
+
+char *TERM_EVS[] = { "2J","1J","0J","2K","1K","0K" };
+enum TERM_EVSI{
+    eraseDisplay,
+    eraseDisplayToUp,
+    eraseDisplayToDown,
+    eraseLine,
+    eraseLineToRight,
+    eraseLineToLeft
+};
+
+
+enum mouseStates {
+    mouseClick,
+    mouseMiddle,
+    mouseContext,
+    mouseDown
 };
 
 void printByLen(char *str,int len){
@@ -205,35 +235,111 @@ canvas newCanvas(int w,int h){
     return c;
 }
 
-char *box(char *str){
-    int len=strlen(str);
+strInf screenDim(){
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    strInf res;
+    res.cols=w.ws_col;
+    res.rows=w.ws_row;
+    res.len=res.cols*res.rows;
+    return res;
+}
+
+void enableRawMode() {
+    struct termios raw;
+    tcgetattr(STDIN_FILENO, &raw);
+    raw.c_lflag &= ~(ECHO | ICANON); // Disable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void disableRawMode() {
+    struct termios raw;
+    tcgetattr(STDIN_FILENO, &raw);
+    raw.c_lflag |= (ECHO | ICANON); // Re-enable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+char *box(int n, ...){
+    va_list args;
+    va_start(args, n);
+    char *str[n];
+    for (int i = 0; i < n; i++){
+        str[i] = va_arg(args, char *);
+    }
+    va_end(args);
+    int l[n];
+    int len=strlen(str[0]);
+    l[0]=len;
+    for(int i=1;i<n;i++){
+        l[i]=strlen(str[i]);
+        len+=l[i]+1;
+    }
     char *res=(char*)malloc(3*3*len+3*3*3+1);
     char *p=res;
     p+=sprintf(p,"%s",AS_BOX_UP_LT);
+    int j=0;
+    int k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",AS_BOX_HL);
+        p+=sprintf(p,"%s",i==k?AS_BOX_UP_HL:AS_BOX_HL);
+        if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s\n%s%s%s\n%s",AS_BOX_UP_RT,AS_BOX_VL,str,AS_BOX_VL,AS_BOX_DN_LT);
+    p+=sprintf(p,"%s\n%s%s",AS_BOX_UP_RT,AS_BOX_VL,str[0]);
+    for(int i=1;i<n;i++){
+        p+=sprintf(p,"%s%s",AS_BOX_VL,str[i]);
+    }
+    p+=sprintf(p,"%s\n%s",AS_BOX_VL,AS_BOX_DN_LT);
+    j=0;
+    k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",AS_BOX_HL);
+        p+=sprintf(p,"%s",i==k?AS_BOX_DN_HL:AS_BOX_HL);
+        if(i==k&&j<n-2) k+=l[++j]+1;
     }
     p+=sprintf(p,"%s",AS_BOX_DN_RT);
     return res;
 }
 
-char *box_db(char *str){
-    int len=strlen(str);
+char *box_db(int n, ...){
+    va_list args;
+    va_start(args, n);
+    char *str[n];
+    for (int i = 0; i < n; i++){
+        str[i] = va_arg(args, char *);
+    }
+    va_end(args);
+    int l[n];
+    int len=strlen(str[0]);
+    l[0]=len;
+    for(int i=1;i<n;i++){
+        l[i]=strlen(str[i]);
+        len+=l[i]+1;
+    }
     char *res=(char*)malloc(3*3*len+3*3*3+1);
     char *p=res;
     p+=sprintf(p,"%s",AS_BOX_UP_LT_DB);
+    int j=0;
+    int k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",AS_BOX_HL_DB);
+        p+=sprintf(p,"%s",i==k?AS_BOX_UP_HL_DB:AS_BOX_HL_DB);
+        if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s\n%s%s%s\n%s",AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str,AS_BOX_VL_DB,AS_BOX_DN_LT_DB);
+    p+=sprintf(p,"%s\n%s%s",AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str[0]);
+    for(int i=1;i<n;i++){
+        p+=sprintf(p,"%s%s",AS_BOX_VL_DB,str[i]);
+    }
+    p+=sprintf(p,"%s\n%s",AS_BOX_VL_DB,AS_BOX_DN_LT_DB);
+    j=0;
+    k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",AS_BOX_HL_DB);
+        p+=sprintf(p,"%s",i==k?AS_BOX_DN_HL_DB:AS_BOX_HL_DB);
+        if(i==k&&j<n-2) k+=l[++j]+1;
     }
     p+=sprintf(p,"%s",AS_BOX_DN_RT_DB);
+    return res;
+}
+
+char *rgb(int r,int g,int b){
+    char *res=malloc(21);
+    sprintf(res,"\e[38;2;%d;%d;%dm",r,g,b);
     return res;
 }
 
@@ -279,9 +385,67 @@ void insertStr(canvas canv,char *str,int x,int y){
     }
 }
 
-
+void termCtrl(int ev){
+    printf("%s",TERM_EVS[ev]);
+}
 
 void display(canvas canv){
     printf("Canvas of %dx%d:\n%s",canv.w,canv.h,canv.buf);
 }
 
+void *task1(void *arg){
+    return NULL;
+}
+
+void *task2(void *arg){
+    return NULL;
+}
+
+void init(){
+    pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, task1, NULL);
+    pthread_create(&thread2, NULL, task2, NULL);
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+    enableRawMode();
+    atexit(disableRawMode);
+    printf(TRACK_MOUSE_EN);
+    
+    int isDrag=0;
+    int lastPos[2];
+
+    printf("Scroll the mouse or press 'q' to quit.\n");
+    while (1) {
+        char buf[32];
+        int n = read(STDIN_FILENO, buf, sizeof(buf));
+
+        if (n > 0) {debugBuffer(buf);
+            if (buf[0] == '\033' && buf[1] == '[' && buf[2] == 'M') {
+                // Parse mouse event
+                int button = buf[3] - 32;
+                int x = buf[4] - 32;
+                int y = buf[5] - 32;
+
+                if (button == 64) { // Scroll up (button code: 64)
+                    printf("Scroll up detected at (%d, %d)\n", x, y);
+                } else if (button == 65) { // Scroll down (button code: 65)
+                    printf("Scroll down detected at (%d, %d)\n", x, y);
+                } else {
+                    printf("Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
+                    if(isDrag){
+                        printf("Dragged by: (%d,%d)\n",x-lastPos[0],y-lastPos[1]);
+                    }else{
+                        lastPos[0]=x;
+                        lastPos[1]=y;
+                    }
+                    isDrag=!isDrag;
+                }
+            }
+            if (buf[0] == 'q') {
+                break;
+            }
+        }
+    }
+
+    printf(TRACK_MOUSE_DS);
+}
