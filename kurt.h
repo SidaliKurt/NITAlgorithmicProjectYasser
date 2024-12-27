@@ -12,7 +12,9 @@
 #define COUNT_ARGS(...) COUNT_ARGS_IMPL(__VA_ARGS__, 5, 4, 3, 2, 1)
 #define COUNT_ARGS_IMPL(_1, _2, _3, _4, _5, N, ...) N
 
-
+const char* ALPH_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const char* ALPH_LOWER = "abcdefghijklmnopqrstuvwxyz";
+const char* DIGITS = "0123456789";
 const char* TRACK_MOUSE_EN = "\033[?1003h\033[?1000h";
 const char* TRACK_MOUSE_DS = "\033[?1003l\033[?1000l";
 //Renderer Constants
@@ -85,7 +87,7 @@ const char* AS_EXP_TWO = "\xC2\xB2"; // ²
 const char* AS_EXP_THR = "\xC2\xB3"; // ³
 const char* AS_NBSP = "\xC2\xA0"; //  
 
-enum colors {
+enum {
     reset,
     bold,
     dim,
@@ -140,14 +142,26 @@ enum colors {
     bgWhite
 };
 
-char *TERM_EVS[] = { "2J","1J","0J","2K","1K","0K" };
-enum TERM_EVSI{
+const char *TERM_EVS="ABCDEFGJKSTX@PLMsu";
+enum {
+    cursorUp,
+    cursorDown,
+    cursorRight,
+    cursorLeft,
+    cursorNextLine,
+    cursorPrevLine,
+    cursorCol,
     eraseDisplay,
-    eraseDisplayToUp,
-    eraseDisplayToDown,
     eraseLine,
-    eraseLineToRight,
-    eraseLineToLeft
+    scrollUp,
+    scrollDown,
+    eraseFromPos,
+    insertBlank,
+    deleteChar,
+    insertLine,
+    deleteLine,
+    saveCursor,
+    restoreCursor
 };
 
 
@@ -385,8 +399,12 @@ void insertStr(canvas canv,char *str,int x,int y){
     }
 }
 
-void termCtrl(int ev){
-    printf("%s",TERM_EVS[ev]);
+void termCtrl(int ev,int n){
+    printf("\e[%d%s",n,TERM_EVS[ev]);
+}
+
+void cursorPos(int x,int y){
+    printf("\e[%d;%dH",y,x);
 }
 
 void display(canvas canv){
