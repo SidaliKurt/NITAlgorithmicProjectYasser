@@ -15,11 +15,9 @@
 const char* ALPH_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const char* ALPH_LOWER = "abcdefghijklmnopqrstuvwxyz";
 const char* DIGITS = "0123456789";
-const char* TRACK_MOUSE_EN = "\033[?1003h\033[?1000h";
-const char* TRACK_MOUSE_DS = "\033[?1003l\033[?1000l";
+const char* TRACK_MOUSE_EN = "\033[?1000h\033[?1003h";
+const char* TRACK_MOUSE_DS = "\033[?1000l\033[?1003l";
 //Renderer Constants
-const char* AS_ANGLE_LT = "\xC2\xAB"; // «
-const char* AS_ANGLE_RT = "\xC2\xBB"; // »
 const char* AS_ARROW_UP = "\xE2\x86\x91"; // ↑
 const char* AS_ARROW_DN = "\xE2\x86\x93"; // ↓
 const char* AS_ARROW_LT = "\xE2\x86\x90"; // ←
@@ -54,6 +52,10 @@ const char* AS_BOX_VL_LT_DB = "\xE2\x95\xA3"; // ╣
 const char* AS_BOX_UP_HL_DB = "\xE2\x95\xA6"; // ╦
 const char* AS_BOX_DN_HL_DB = "\xE2\x95\xA9"; // ╩
 const char* AS_BOX_VL_HL_DB = "\xE2\x94\xBC"; // ╬
+const char* AS_CONGRUENCE = "\xE2\x89\xA1"; // ≡
+const char* AS_UNDERSCORE = "\xE2\x80\x96"; // ‗
+const char* AS_ANGLE_LT = "\xC2\xAB"; // «
+const char* AS_ANGLE_RT = "\xC2\xBB"; // »
 const char* AS_CURRENCY = "\xC2\xA4"; // ¤
 const char* AS_COPYRT = "\xC2\xA9"; // ©
 const char* AS_CENT = "\xC2\xA2"; // ¢
@@ -64,17 +66,15 @@ const char* AS_F_HOOK = "\xC6\x92"; // ƒ
 const char* AS_FEMININE_ORDINAL = "\xC2\xAA"; // ª
 const char* AS_MASCULINE_ORDINAL = "\xC2\xBA"; // º
 const char* AS_INVERTED_QUESTION = "\xC2\xBF"; // ¿
-const char* AS_REVERSED_NOT = "\xE2\x8C\x90"; // ⌐
 const char* AS_NOT = "\xC2\xAC"; // ¬
+const char* AS_REVERSED_NOT = "\xE2\x8C\x90"; // ⌐
 const char* AS_ONE_HALF = "\xC2\xBD"; // ½
 const char* AS_ONE_QUARTER = "\xC2\xBC"; // ¼
 const char* AS_THREE_QUARTERS = "\xC2\xBE"; // ¾
 const char* AS_INVERTED_EXCLAMATION = "\xC2\xA1"; // ¡
 const char* AS_MACRON = "\xC2\xAF"; // ¯
 const char* AS_ACUTE = "\xC2\xB4"; // ´
-const char* AS_CONGRUENCE = "\xE2\x89\xA1"; // ≡
 const char* AS_PLUS_MINUS = "\xC2\xB1"; // ±
-const char* AS_UNDERSCORE = "\xE2\x80\x96"; // ‗
 const char* AS_PARAGRAPH = "\xC2\xB6"; // ¶
 const char* AS_SECTION = "\xC2\xA7"; // §
 const char* AS_DIVISION = "\xC3\xB7"; // ÷
@@ -163,7 +163,6 @@ enum {
     saveCursor,
     restoreCursor
 };
-
 
 enum mouseStates {
     mouseClick,
@@ -409,6 +408,7 @@ void cursorPos(int x,int y){
 
 void display(canvas canv){
     printf("Canvas of %dx%d:\n%s",canv.w,canv.h,canv.buf);
+    fflush(stdout);
 }
 
 void *task1(void *arg){
@@ -433,8 +433,8 @@ void init(){
     int lastPos[2];
 
     printf("Scroll the mouse or press 'q' to quit.\n");
+    char buf[32];
     while (1) {
-        char buf[32];
         int n = read(STDIN_FILENO, buf, sizeof(buf));
 
         if (n > 0) {debugBuffer(buf);
