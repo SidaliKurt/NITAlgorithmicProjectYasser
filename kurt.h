@@ -1,3 +1,4 @@
+//Libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 #define COUNT_ARGS(...) COUNT_ARGS_IMPL(__VA_ARGS__, 5, 4, 3, 2, 1)
 #define COUNT_ARGS_IMPL(_1, _2, _3, _4, _5, N, ...) N
 
+//Declared to take space with no reason
 const char* ALPH_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const char* ALPH_LOWER = "abcdefghijklmnopqrstuvwxyz";
 const char* DIGITS = "0123456789";
@@ -223,14 +225,6 @@ enum mouseStates {
     mouseDown
 };
 
-void printByLen(char *str,int len){
-    printf("Printing %d bytes: ",len);
-    for(int i=0;i<len;i++){
-        printf("%c ",str[i]);
-    }
-
-}
-
 void newError(char *str,...){
     va_list args;
     va_start(args,str);
@@ -239,15 +233,7 @@ void newError(char *str,...){
     exit(1);
 }
 
-void debugBuffer(char *buf){
-    int len=strlen(buf);
-    printf("Buffer of %d bytes: \e[1m",len);
-    for(int i=0;i<len;i++){
-        printf("%x ",buf[i]);
-    }
-    printf("\e[0m\n");
-}
-
+//String Properties
 typedef struct{
     int len;
     int cols;
@@ -273,16 +259,32 @@ strInf getStrInf(char *str){
     res.cols=len;
     return res;
 }
+void debugBuffer(char *buf){
+    int len=strlen(buf);
+    printf("Buffer of %d bytes: \e[1m",len);
+    for(int i=0;i<len;i++){
+        printf("%x ",buf[i]);
+    }
+    printf("\e[0m\n");
+}
+void printByLen(char *str,int len){
+    printf("Printing %d bytes: ",len);
+    for(int i=0;i<len;i++){
+        printf("%c ",str[i]);
+    }
+}
 
+
+//Screen properties 
 typedef struct{
     int w;
     int h;
     int len;
-    int cols;
-    int rows;
+    /*int cols;
+    int rows;*/
     char *buf;
-}canvas;
-canvas newCanvas(int w,int h){
+}screen;
+screen newScreen(int w,int h){
     char *buf = (char*)malloc((w/*+1*/)*h+1);
     for(int i=0;i<h;i++){
         for(int j=0;j<w;j++){
@@ -291,16 +293,15 @@ canvas newCanvas(int w,int h){
         //buf[i*(w+1)+w]='\n';
     }
     buf[(w/*+1*/)*h]='\0';
-    canvas c;
-    c.w=w;
-    c.h=h;
-    c.buf=buf;
-    c.len=w*h;
-    /*c.cols=w;
-    c.rows=h;*/
-    return c;
+    screen scrn;
+    scrn.w=w;
+    scrn.h=h;
+    scrn.buf=buf;
+    scrn.len=w*h;
+    /*scrn.cols=w;
+    scrn.rows=h;*/
+    return scrn;
 }
-
 strInf screenDim(){
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
@@ -309,6 +310,30 @@ strInf screenDim(){
     res.rows=w.ws_row;
     res.len=res.cols*res.rows;
     return res;
+}
+
+//Canvas properties
+typedef struct{
+    int w;
+    int h;
+    int len;
+    char *buf;
+}canvas;
+canvas newCanvas(int w,int h){
+    char *buf = (char*)malloc(w*h+1);
+    for(int i=0;i<h;i++){
+        for(int j=0;j<w;j++){
+            buf[i*w+j]='-';
+        }
+        //buf[i*(w+1)+w]='\n';
+    }
+    buf[w*h]='\0';
+    canvas canv;
+    canv.w=w;
+    canv.h=h;
+    canv.buf=buf;
+    canv.len=w*h;
+    return canv;
 }
 
 typedef struct{
@@ -477,19 +502,19 @@ char* utf8(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b
     return buf;
 }
 
-void insertStr(canvas canv,char *str,int x,int y){
+void insertStr(screen scrn,char *str,int x,int y){
     strInf inf=getStrInf(str);
-    if(x>canv.w||y>canv.h){
-        newError("Out of bounds: (%d,%d) in canvas of %dx%d",x,y,canv.w,canv.h);
+    if(x>scrn.w||y>scrn.h){
+        newError("Out of bounds: (%d,%d) in scrnas of %dx%d",x,y,scrn.w,scrn.h);
         return;
     }
     for(int i=0;i<inf.len;i++){
-        canv.buf[((canv.w/*+1*/)*y)+x+i]=str[i];
+        scrn.buf[((scrn.w/*+1*/)*y)+x+i]=str[i];
     }
 }
 
-void display(canvas canv){
-    printf("Canvas of %dx%d:\n%s",canv.w,canv.h,canv.buf);
+void display(screen scrn){
+    printf("scrnas of %dx%d:\n%s",scrn.w,scrn.h,scrn.buf);
     fflush(stdout);
 }
 
