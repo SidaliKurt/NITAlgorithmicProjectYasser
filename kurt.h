@@ -15,7 +15,7 @@
 const char* ALPH_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const char* ALPH_LOWER = "abcdefghijklmnopqrstuvwxyz";
 const char* DIGITS = "0123456789";
-const char* TRACK_MOUSE_EN = "\033[?1000h\033[?1003h";
+const char* TRACK_MOUSE_EN = "\033[?1003h";
 const char* TRACK_MOUSE_DS = "\033[?1000l\033[?1003l";
 //Renderer Constants
 const char* AS_ARROW_UP = "\xE2\x86\x91"; // ↑
@@ -143,6 +143,7 @@ enum {
 };
 
 const char *TERM_EVS="ABCDEFGJKSTX@PLMsu";
+const char *TERM_EVSX[] = { "1003h", "1003l", "1004h", "1004l", "25h", "25l", "12h", "12l", "1049h", "1049l", "1047h", "1047l", "7h", "7l", "1h", "1l", "69h", "69l" };
 enum {
     cursorUp,
     cursorDown,
@@ -161,8 +162,59 @@ enum {
     insertLine,
     deleteLine,
     saveCursor,
-    restoreCursor
+    restoreCursor,
+    enableMouseTracking=100,
+    disableMouseTracking,
+    enableFocusReporting,
+    disableFocusReporting,
+    showCursor,
+    hideCursor,
+    cursorBlink,
+    cursorNoBlink,
+    enableAlternScreen,
+    disableAlternScreen,
+    switchAlternScreen,
+    switchMainScreen,
+    enableWrap,
+    disableWrap,
+    enableKeypadMode,
+    disableKeypadMode,
+    enableMargins,
+    disableMargins
 };
+
+void termCtrl(int ev,int n){
+    if(ev<100){
+        printf("\e[%d%c",n,TERM_EVS[ev]);
+    }else{
+        printf("\e[?%s",TERM_EVSX[ev]);
+    }
+}
+
+void cursorPos(int x,int y){
+    printf("\e[%d;%dH",y,x);
+}
+
+void scrollArea(int top, int bottom){
+    printf("\e[%d;%dr",top,bottom);
+}
+
+void resetTerminal(){
+    printf("\e[!p");
+}
+
+void handleSignal(int sig){
+    switch (sig){
+        case SIGINT:
+            printf("Caught Interruption Signal, Exitting...\n");
+            exit(1);
+            break;
+    
+        default:
+            printf("Caught Signal: %d\n",sig);
+            break;
+    }
+}
 
 enum mouseStates {
     mouseClick,
@@ -217,6 +269,7 @@ strInf getStrInf(char *str){
             }
         }
     }
+    if(len==0) len=res.len;
     res.cols=len;
     return res;
 }
@@ -230,14 +283,14 @@ typedef struct{
     char *buf;
 }canvas;
 canvas newCanvas(int w,int h){
-    char *buf = (char*)malloc((w+1)*h+1);
+    char *buf = (char*)malloc((w/*+1*/)*h+1);
     for(int i=0;i<h;i++){
         for(int j=0;j<w;j++){
-            buf[i*(w+1)+j]='-';
+            buf[i*(w/*+1*/)+j]='-';
         }
-        buf[i*(w+1)+w]='\n';
+        //buf[i*(w+1)+w]='\n';
     }
-    buf[(w+1)*h]='\0';
+    buf[(w/*+1*/)*h]='\0';
     canvas c;
     c.w=w;
     c.h=h;
@@ -257,6 +310,18 @@ strInf screenDim(){
     res.len=res.cols*res.rows;
     return res;
 }
+
+typedef struct{
+    char *content;
+    int id;
+    int x;
+    int y;
+    int cols;
+    int rows;
+    int xEnd;
+    int yEnd;
+}button;
+button buttons[4];
 
 void enableRawMode() {
     struct termios raw;
@@ -350,6 +415,31 @@ char *box_db(int n, ...){
     return res;
 }
 
+button newButton(char *cont, int id, int x, int y){
+    strInf inf = getStrInf(cont);
+    button btn={
+        .content=cont,
+        .id=id,
+        .x=x,
+        .y=y,
+        .cols=inf.cols,
+        .rows=inf.rows,
+        .xEnd=x+inf.cols-1,
+        .yEnd=y+inf.rows-1
+    };
+    buttons[0]=btn;
+    printf("Button specs: x:%d, y:%d, xend:%d, yend:%d, id:%d, cols:%d, rows:%d\n",x,y,btn.xEnd,btn.yEnd,id,btn.cols,btn.rows);
+    return btn;
+}
+
+void handleClick(int x, int y){
+    for(int i=0;i<1;i++){
+        if(x>buttons[i].x-1 && x<buttons[i].xEnd+1 && y>buttons[i].y-1 && y<buttons[i].yEnd+1){
+            printf("Button id: #%d clicked at: (%d,%d)\n",buttons[i].id,x,y);
+        }
+    }
+}
+
 char *rgb(int r,int g,int b){
     char *res=malloc(21);
     sprintf(res,"\e[38;2;%d;%d;%dm",r,g,b);
@@ -394,16 +484,8 @@ void insertStr(canvas canv,char *str,int x,int y){
         return;
     }
     for(int i=0;i<inf.len;i++){
-        canv.buf[((canv.w+1)*y)+x+i]=str[i];
+        canv.buf[((canv.w/*+1*/)*y)+x+i]=str[i];
     }
-}
-
-void termCtrl(int ev,int n){
-    printf("\e[%d%s",n,TERM_EVS[ev]);
-}
-
-void cursorPos(int x,int y){
-    printf("\e[%d;%dH",y,x);
 }
 
 void display(canvas canv){
@@ -420,6 +502,7 @@ void *task2(void *arg){
 }
 
 void init(){
+    signal(SIGINT,handleSignal);
     pthread_t thread1, thread2;
     pthread_create(&thread1, NULL, task1, NULL);
     pthread_create(&thread2, NULL, task2, NULL);
@@ -455,6 +538,7 @@ void init(){
                     }else{
                         lastPos[0]=x;
                         lastPos[1]=y;
+                        handleClick(x,y);
                     }
                     isDrag=!isDrag;
                 }
