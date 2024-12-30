@@ -19,43 +19,51 @@ const char* ALPH_LOWER = "abcdefghijklmnopqrstuvwxyz";
 const char* DIGITS = "0123456789";
 const char* TRACK_MOUSE_EN = "\033[?1003h";
 const char* TRACK_MOUSE_DS = "\033[?1000l\033[?1003l";
+
 //Renderer Constants
-const char* AS_ARROW_UP = "\xE2\x86\x91"; // ↑
-const char* AS_ARROW_DN = "\xE2\x86\x93"; // ↓
-const char* AS_ARROW_LT = "\xE2\x86\x90"; // ←
-const char* AS_ARROW_RT = "\xE2\x86\x92"; // →
-const char* AS_SHADE_MIN = "\xE2\x96\x91"; // ░
-const char* AS_SHADE_MID = "\xE2\x96\x92"; // ▒
-const char* AS_SHADE_FUL = "\xE2\x96\x93"; // ▓
-const char* AS_BLOCK_FUL = "\xE2\x96\x88"; // █
-const char* AS_BLOCK_UP = "\xE2\x96\x80"; // ▀
-const char* AS_BLOCK_DN = "\xE2\x96\x84"; // ▄
-const char* AS_BLOCK_RT = "\xE2\x96\x8C"; // ▌
-const char* AS_BLOCK_LT = "\xE2\x96\x90"; // ▐
-const char* AS_BOX_VL = "\xE2\x94\x82"; // │
-const char* AS_BOX_HL = "\xE2\x94\x80"; // ─
-const char* AS_BOX_UP_RT = "\xE2\x94\x90"; // ┐
-const char* AS_BOX_DN_RT = "\xE2\x94\x98"; // ┘
-const char* AS_BOX_UP_LT = "\xE2\x94\x8C"; // ┌
-const char* AS_BOX_DN_LT = "\xE2\x94\x94"; // └
-const char* AS_BOX_VL_RT = "\xE2\x94\x9C"; // ├
-const char* AS_BOX_VL_LT = "\xE2\x94\xA4"; // ┤
-const char* AS_BOX_UP_HL = "\xE2\x94\xAC"; // ┬
-const char* AS_BOX_DN_HL = "\xE2\x94\xB4"; // ┴
-const char* AS_BOX_VL_HL = "\xE2\x94\xBC"; // ┼
-const char* AS_BOX_VL_DB = "\xE2\x95\x91"; // ║
-const char* AS_BOX_HL_DB = "\xE2\x95\x90"; // ═
-const char* AS_BOX_UP_RT_DB = "\xE2\x95\x97"; // ╗
-const char* AS_BOX_DN_RT_DB = "\xE2\x95\x9D"; // ╝
-const char* AS_BOX_UP_LT_DB = "\xE2\x95\x94"; // ╔
-const char* AS_BOX_DN_LT_DB = "\xE2\x95\x9A"; // ╚
-const char* AS_BOX_VL_RT_DB = "\xE2\x95\xA0"; // ╠
-const char* AS_BOX_VL_LT_DB = "\xE2\x95\xA3"; // ╣
-const char* AS_BOX_UP_HL_DB = "\xE2\x95\xA6"; // ╦
-const char* AS_BOX_DN_HL_DB = "\xE2\x95\xA9"; // ╩
-const char* AS_BOX_VL_HL_DB = "\xE2\x94\xBC"; // ╬
-const char* AS_CONGRUENCE = "\xE2\x89\xA1"; // ≡
-const char* AS_UNDERSCORE = "\xE2\x80\x96"; // ‗
+typedef struct{
+    char *text;
+    short code;
+}rndrConst;
+const rndrConst AS_ARROW_UP = { .text="\xE2\x86\x91", .code=255 }; // ↑
+const rndrConst AS_ARROW_DN = { .text="\xE2\x86\x93", .code=254 }; // ↓
+const rndrConst AS_ARROW_LT = { .text="\xE2\x86\x90", .code=253 }; // ←
+const rndrConst AS_ARROW_RT = { .text="\xE2\x86\x92", .code=252 }; // →
+const rndrConst AS_SHADE_MIN = { .text="\xE2\x96\x91", .code=251 }; // ░
+const rndrConst AS_SHADE_MID = { .text="\xE2\x96\x92", .code=250 }; // ▒
+const rndrConst AS_SHADE_FUL = { .text="\xE2\x96\x93", .code=249 }; // ▓
+const rndrConst AS_BLOCK_FUL = { .text="\xE2\x96\x88", .code=248 }; // █
+const rndrConst AS_BLOCK_UP = { .text="\xE2\x96\x80", .code=247 }; // ▀
+const rndrConst AS_BLOCK_DN = { .text="\xE2\x96\x84", .code=246 }; // ▄
+const rndrConst AS_BLOCK_RT = { .text="\xE2\x96\x8C", .code=245 }; // ▌
+const rndrConst AS_BLOCK_LT = { .text="\xE2\x96\x90", .code=244 }; // ▐
+const rndrConst AS_BOX_VL = { .text="\xE2\x94\x82", .code=243 }; // │
+const rndrConst AS_BOX_HL = { .text="\xE2\x94\x80", .code=242 }; // ─
+const rndrConst AS_BOX_UP_RT = { .text="\xE2\x94\x90", .code=241 }; // ┐
+const rndrConst AS_BOX_DN_RT = { .text="\xE2\x94\x98", .code=240 }; // ┘
+const rndrConst AS_BOX_UP_LT = { .text="\xE2\x94\x8C", .code=239 }; // ┌
+const rndrConst AS_BOX_DN_LT = { .text="\xE2\x94\x94", .code=238 }; // └
+const rndrConst AS_BOX_VL_RT = { .text="\xE2\x94\x9C", .code=237 }; // ├
+const rndrConst AS_BOX_VL_LT = { .text="\xE2\x94\xA4", .code=236 }; // ┤
+const rndrConst AS_BOX_UP_HL = { .text="\xE2\x94\xAC", .code=235 }; // ┬
+const rndrConst AS_BOX_DN_HL = { .text="\xE2\x94\xB4", .code=234 }; // ┴
+const rndrConst AS_BOX_VL_HL = { .text="\xE2\x94\xBC", .code=233 }; // ┼
+const rndrConst AS_BOX_VL_DB = { .text="\xE2\x95\x91", .code=232 }; // ║
+const rndrConst AS_BOX_HL_DB = { .text="\xE2\x95\x90", .code=231 }; // ═
+const rndrConst AS_BOX_UP_RT_DB = { .text="\xE2\x95\x97", .code=230 }; // ╗
+const rndrConst AS_BOX_DN_RT_DB = { .text="\xE2\x95\x9D", .code=229 }; // ╝
+const rndrConst AS_BOX_UP_LT_DB = { .text="\xE2\x95\x94", .code=228 }; // ╔
+const rndrConst AS_BOX_DN_LT_DB = { .text="\xE2\x95\x9A", .code=227 }; // ╚
+const rndrConst AS_BOX_VL_RT_DB = { .text="\xE2\x95\xA0", .code=226 }; // ╠
+const rndrConst AS_BOX_VL_LT_DB = { .text="\xE2\x95\xA3", .code=225 }; // ╣
+const rndrConst AS_BOX_UP_HL_DB = { .text="\xE2\x95\xA6", .code=224 }; // ╦
+const rndrConst AS_BOX_DN_HL_DB = { .text="\xE2\x95\xA9", .code=223 }; // ╩
+const rndrConst AS_BOX_VL_HL_DB = { .text="\xE2\x94\xBC", .code=222 }; // ╬
+const rndrConst AS_CONGRUENCE = { .text="\xE2\x89\xA1", .code=221 }; // ≡
+const rndrConst AS_UNDERSCORE = { .text="\xE2\x80\x96", .code=220 }; // ‗
+const rndrConst rndrConsts[] = {
+    AS_ARROW_UP, AS_ARROW_DN, AS_ARROW_LT, AS_ARROW_RT, AS_SHADE_MIN, AS_SHADE_MID, AS_SHADE_FUL, AS_BLOCK_FUL, AS_BLOCK_UP, AS_BLOCK_DN, AS_BLOCK_RT, AS_BLOCK_LT, AS_BOX_VL, AS_BOX_HL, AS_BOX_UP_RT, AS_BOX_DN_RT, AS_BOX_UP_LT, AS_BOX_DN_LT, AS_BOX_VL_RT, AS_BOX_VL_LT, AS_BOX_UP_HL, AS_BOX_DN_HL, AS_BOX_VL_HL, AS_BOX_VL_DB, AS_BOX_HL_DB, AS_BOX_UP_RT_DB, AS_BOX_DN_RT_DB, AS_BOX_UP_LT_DB, AS_BOX_DN_LT_DB, AS_BOX_VL_RT_DB, AS_BOX_VL_LT_DB, AS_BOX_UP_HL_DB, AS_BOX_DN_HL_DB, AS_BOX_VL_HL_DB, AS_CONGRUENCE, AS_UNDERSCORE
+};
 const char* AS_ANGLE_LT = "\xC2\xAB"; // «
 const char* AS_ANGLE_RT = "\xC2\xBB"; // »
 const char* AS_CURRENCY = "\xC2\xA4"; // ¤
@@ -88,6 +96,42 @@ const char* AS_EXP_ONE = "\xC2\xB9"; // ¹
 const char* AS_EXP_TWO = "\xC2\xB2"; // ²
 const char* AS_EXP_THR = "\xC2\xB3"; // ³
 const char* AS_NBSP = "\xC2\xA0"; //  
+const char AS_NEUTRAL = '\x01';
+enum {
+    CV_SHADE_MIN = 176, // ░
+    CV_SHADE_MID, // ▒
+    CV_SHADE_FUL, // ▓
+    CV_BOX_VL, // │
+    CV_BOX_VL_LT, // ┤
+    CV_BOX_VL_LT_DB = 185, // ╣
+    CV_BOX_VL_DB, // ║
+    CV_BOX_UP_RT_DB, // ╗
+    CV_BOX_DN_RT_DB, // ╝
+    CV_BOX_UP_RT = 191, // ┐
+    CV_BOX_DN_LT, // └
+    CV_BOX_DN_HL, // ┴
+    CV_BOX_UP_HL, // ┬
+    CV_BOX_VL_RT, // ├
+    CV_BOX_HL, // ─
+    CV_BOX_VL_HL, // ┼
+    CV_BOX_DN_LT_DB = 200, // ╚
+    CV_BOX_UP_LT_DB, // ╔
+    CV_BOX_DN_HL_DB, // ╩
+    CV_BOX_UP_HL_DB, // ╦
+    CV_BOX_VL_RT_DB, // ╠
+    CV_BOX_HL_DB, // ═
+    CV_BOX_VL_HL_DB, // ╬
+    CV_BOX_DN_RT = 217, // ┘
+    CV_BOX_UP_LT, // ┌
+    CV_BLOCK_FUL, // █
+    CV_BLOCK_DN, // ▄
+    CV_BLOCK_UP = 223, // ▀
+    CV_MACRON = 238, // ¯
+    CV_ACUTE, // ´
+    CV_CONGRUENCE, // ≡
+    CV_PLUS_MINUS, // ±
+    CV_UNDERSCORE // ‗
+};
 
 enum {
     reset,
@@ -274,7 +318,6 @@ void printByLen(char *str,int len){
     }
 }
 
-
 //Screen properties 
 typedef struct{
     int w;
@@ -311,6 +354,18 @@ strInf screenDim(){
     res.len=res.cols*res.rows;
     return res;
 }
+typedef struct{
+    unsigned int text:24;
+}char24_t;
+char24_t char24(char *str){
+    char24_t res;
+    res.text=0;
+    for(int i=0;i<2;i++){
+        res.text<<=8;
+        res.text|=str[i];
+    }
+    return res;
+}
 
 //Canvas properties
 typedef struct{
@@ -336,6 +391,25 @@ canvas newCanvas(int w,int h){
     return canv;
 }
 
+char *toUTF8(unsigned char *str){
+    strInf inf=getStrInf((char*) str);
+    char *res=malloc(inf.len*3+1);
+    int j=0;
+    for(int i=0;i<inf.len;i++){
+        if(str[i]<220){
+            res[j++]=AS_NEUTRAL;
+            res[j++]=AS_NEUTRAL;
+            res[j++]=str[i];
+        }else{
+            res[j++]=rndrConsts[255-str[i]].text[0];
+            res[j++]=rndrConsts[255-str[i]].text[1];
+            res[j++]=rndrConsts[255-str[i]].text[2];
+        }
+    }
+    return res;
+}
+
+//Button properties
 typedef struct{
     char *content;
     int id;
@@ -347,6 +421,29 @@ typedef struct{
     int yEnd;
 }button;
 button buttons[4];
+button newButton(char *cont, int id, int x, int y){
+    strInf inf = getStrInf(cont);
+    button btn={
+        .content=cont,
+        .id=id,
+        .x=x,
+        .y=y,
+        .cols=inf.cols,
+        .rows=inf.rows,
+        .xEnd=x+inf.cols-1,
+        .yEnd=y+inf.rows-1
+    };
+    buttons[id]=btn;
+    printf("Button specs: x:%d, y:%d, xend:%d, yend:%d, id:%d, cols:%d, rows:%d\n",x,y,btn.xEnd,btn.yEnd,id,btn.cols,btn.rows);
+    return btn;
+}
+void handleClick(int x, int y){
+    for(int i=0;i<sizeof(buttons)/sizeof(button);i++){
+        if(x>buttons[i].x-1 && x<buttons[i].xEnd+1 && y>buttons[i].y-1 && y<buttons[i].yEnd+1){
+            printf("Button id: #%d clicked at: (%d,%d)\n",buttons[i].id,x,y);
+        }
+    }
+}
 
 void enableRawMode() {
     struct termios raw;
@@ -377,27 +474,27 @@ char *box(int n, ...){
         l[i]=strlen(str[i]);
         len+=l[i]+1;
     }
-    char *res=(char*)malloc(3*3*len+3*3*3+1);
+    char *res=(char*)malloc(3*len+3*3+1);
     char *p=res;
-    p+=sprintf(p,"%s",AS_BOX_UP_LT);
+    *p++=AS_BOX_UP_LT.code;
     int j=0;
     int k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",i==k?AS_BOX_UP_HL:AS_BOX_HL);
+        *p++=i==k?AS_BOX_UP_HL.code:AS_BOX_HL.code;
         if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s\n%s%s",AS_BOX_UP_RT,AS_BOX_VL,str[0]);
+    p+=sprintf(p,"%c\n%c%s",AS_BOX_UP_RT.code,AS_BOX_VL.code,str[0]);
     for(int i=1;i<n;i++){
-        p+=sprintf(p,"%s%s",AS_BOX_VL,str[i]);
+        p+=sprintf(p,"%c%s",AS_BOX_VL.code,str[i]);
     }
-    p+=sprintf(p,"%s\n%s",AS_BOX_VL,AS_BOX_DN_LT);
+    p+=sprintf(p,"%c\n%c",AS_BOX_VL.code,AS_BOX_DN_LT.code);
     j=0;
     k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",i==k?AS_BOX_DN_HL:AS_BOX_HL);
+        *p++=i==k?AS_BOX_DN_HL.code:AS_BOX_HL.code;
         if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s",AS_BOX_DN_RT);
+    *p++=AS_BOX_DN_RT.code;
     return res;
 }
 
@@ -416,53 +513,28 @@ char *box_db(int n, ...){
         l[i]=strlen(str[i]);
         len+=l[i]+1;
     }
-    char *res=(char*)malloc(3*3*len+3*3*3+1);
+    char *res=(char*)malloc(3*len+3*3+1);
     char *p=res;
-    p+=sprintf(p,"%s",AS_BOX_UP_LT_DB);
+    *p++=AS_BOX_UP_LT_DB.code;
     int j=0;
     int k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",i==k?AS_BOX_UP_HL_DB:AS_BOX_HL_DB);
+        *p++=i==k?AS_BOX_UP_HL_DB.code:AS_BOX_HL_DB.code;
         if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s\n%s%s",AS_BOX_UP_RT_DB,AS_BOX_VL_DB,str[0]);
+    p+=sprintf(p,"%c\n%c%s",AS_BOX_UP_RT_DB.code,AS_BOX_VL_DB.code,str[0]);
     for(int i=1;i<n;i++){
-        p+=sprintf(p,"%s%s",AS_BOX_VL_DB,str[i]);
+        p+=sprintf(p,"%c%s",AS_BOX_VL_DB.code,str[i]);
     }
-    p+=sprintf(p,"%s\n%s",AS_BOX_VL_DB,AS_BOX_DN_LT_DB);
+    p+=sprintf(p,"%c\n%c",AS_BOX_VL_DB.code,AS_BOX_DN_LT_DB.code);
     j=0;
     k=l[j];
     for(int i=0;i<len;i++){
-        p+=sprintf(p,"%s",i==k?AS_BOX_DN_HL_DB:AS_BOX_HL_DB);
+        *p++=i==k?AS_BOX_DN_HL_DB.code:AS_BOX_HL_DB.code;
         if(i==k&&j<n-2) k+=l[++j]+1;
     }
-    p+=sprintf(p,"%s",AS_BOX_DN_RT_DB);
+    *p++=AS_BOX_DN_RT_DB.code;
     return res;
-}
-
-button newButton(char *cont, int id, int x, int y){
-    strInf inf = getStrInf(cont);
-    button btn={
-        .content=cont,
-        .id=id,
-        .x=x,
-        .y=y,
-        .cols=inf.cols,
-        .rows=inf.rows,
-        .xEnd=x+inf.cols-1,
-        .yEnd=y+inf.rows-1
-    };
-    buttons[0]=btn;
-    printf("Button specs: x:%d, y:%d, xend:%d, yend:%d, id:%d, cols:%d, rows:%d\n",x,y,btn.xEnd,btn.yEnd,id,btn.cols,btn.rows);
-    return btn;
-}
-
-void handleClick(int x, int y){
-    for(int i=0;i<1;i++){
-        if(x>buttons[i].x-1 && x<buttons[i].xEnd+1 && y>buttons[i].y-1 && y<buttons[i].yEnd+1){
-            printf("Button id: #%d clicked at: (%d,%d)\n",buttons[i].id,x,y);
-        }
-    }
 }
 
 char *rgb(int r,int g,int b){
