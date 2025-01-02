@@ -328,14 +328,14 @@ typedef struct{
     char *buf;
 }screen;
 screen newScreen(int w,int h){
-    char *buf = (char*)malloc((w/*+1*/)*h+1);
+    char *buf = (char*)malloc((w/*+1*/)*h*3+1);
     for(int i=0;i<h;i++){
         for(int j=0;j<w;j++){
             buf[i*(w/*+1*/)+j]='-';
         }
         //buf[i*(w+1)+w]='\n';
     }
-    buf[(w/*+1*/)*h]='\0';
+    buf[(w/*+1*/)*h*3]='\0';
     screen scrn;
     scrn.w=w;
     scrn.h=h;
@@ -354,6 +354,8 @@ strInf screenDim(){
     res.len=res.cols*res.rows;
     return res;
 }
+screen primScreen;
+screen secdScreen;
 typedef struct{
     unsigned int text:24;
 }char24_t;
@@ -553,7 +555,7 @@ char *color(char *str, int n, ...){
     va_end(args);
 
     int len = strlen(str);
-    char *res = (char *)malloc(len + 10 * n + 5);
+    char *res = (char *)malloc(len + 4 * n + 5);
     char *p = res;
 
     p += sprintf(p, "\e[%d", clr[0]);
@@ -564,14 +566,59 @@ char *color(char *str, int n, ...){
     return res;
 }
 
-char* utf8(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4){
-    static char buf[5];
-    buf[0] = b1;
-    buf[1] = b2;
-    buf[2] = b3;
-    buf[3] = b4;
-    buf[4] = '\0';
-    return buf;
+typedef struct{
+    char *clrs;
+    int x;
+    int y;
+}colorset;
+colorset *clrset;
+int clrsetLen=0;
+colorset color_m(char *str,int x, int y, int n,...){
+    va_list args;
+    va_start(args, n);
+    int clr[n];
+    for (int i = 0; i < n; i++){
+        clr[i] = va_arg(args, int);
+    }
+    va_end(args);
+
+    int len = strlen(str);
+    colorset res = { .clrs = (char *)malloc(4 * n -1), .x = x, .y = y };
+    char *p = res.clrs;
+    p += sprintf(p, "%d", clr[0]);
+    for (int i = 1; i < n; i++){
+        p += sprintf(p, ";%d", clr[i]);
+    }
+    clrset[clrsetLen++]=res;
+    clrset[clrsetLen++]=(colorset){.clrs="0",.x=x+len,.y=y};
+    return res;
+}
+void printColor(int x, int y){
+    for(int i=0;i<clrsetLen;i++){
+        if(clrset[i].x==x&&clrset[i].y==y){
+            printf("\e[%sm",clrset[i].clrs);
+        }
+    }
+}
+void print(screen scrn){
+    int x,y=0;
+    for(int i=0;i<scrn.len;i++){
+        x=i%scrn.w;
+        y=i/scrn.w;
+        printColor(x,y);
+        printf("%c",scrn.buf[i]);
+    }
+    printf("\e[0m");
+}
+
+void printColors(){
+    for(int i=0;i<sizeof(clrset)/sizeof(colorset)-1;i++){
+        cursorPos(clrset[i].x,4);
+        printf("\e[%sm\e[%d@",clrset[i].clrs,clrset[i].y,clrset[i].y);
+        cursorPos(0,12);
+        usleep(1e6);
+        
+    }
 }
 
 void insertStr(screen scrn,char *str,int x,int y){
@@ -585,16 +632,43 @@ void insertStr(screen scrn,char *str,int x,int y){
     }
 }
 
+void addEventListener(int ev, int x, int y){
+    printf(TRACK_MOUSE_EN);
+    char buf[32];
+    while (1) {
+        int n = read(STDIN_FILENO, buf, sizeof(buf));
+        if (n > 0) {
+            if (buf[0] == '\033' && buf[1] == '[' && buf[2] == 'M') {
+                // Parse mouse event
+                int button = buf[3] - 32;
+                int x = buf[4] - 32;
+                int y = buf[5] - 32;
+                printf("Task Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
+            }
+            if (buf[0] == 'q') {
+                break;
+            }
+        }
+    }
+    printf(TRACK_MOUSE_DS);
+}
+
 void display(screen scrn){
     printf("scrnas of %dx%d:\n%s",scrn.w,scrn.h,scrn.buf);
     fflush(stdout);
 }
 
 void *task1(void *arg){
+    usleep(1e6);
+    printf("Task 1\n");
+    usleep(1e6);
     return NULL;
 }
 
 void *task2(void *arg){
+    usleep(1e6/2);
+    printf("Task 2\n");
+    usleep(1e6/2);
     return NULL;
 }
 
