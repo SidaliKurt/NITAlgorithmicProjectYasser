@@ -135,7 +135,6 @@ void merge(BTreeNode* node, int idx) {
         for (int i = 0; i <= sibling->numKeys; i++)
             child->children[i + degree] = sibling->children[i];
     }
-
     for (int i = idx + 1; i < node->numKeys; i++)
         node->keys[i - 1] = node->keys[i];
 

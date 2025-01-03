@@ -16,7 +16,7 @@ typedef struct blockchain {
 } blockchain;
 
 void newTransaction(char *sender, char *receiver, int amount, char *transaction){
-    sprintf(transaction, "%s%s%d", sender, receiver, amount);
+    sprintf(transaction, "%s:%s:%d;", sender, receiver, amount);
 }
 
 void mineBlock(int difficulty, block *blk){

@@ -30,10 +30,13 @@ void func(int n, ...){
     }
 }
 
-void mainMain(){
+void mainMenu(){
     termCtrl(eraseDisplay,2);
     printf("Algorithmic Project by %s\n\n",color("Sidali Kurt",4,bold,blink,fgBlue,italian));
     printf("\tChoose Project:\n\t\t%s %s\n\t\t%s %s\n",AS_ARROW_RT.text,color("BTree",4,underline,bold,fgYellow,blink),AS_ARROW_RT.text,color("PoW",4,underline,bold,fgYellow,blink));
+    int f;
+    scanf("%d",&f);
+
 }
 
 void sha_256(){
@@ -62,7 +65,7 @@ int main(int argc, const char **argv) {
     insertStr(scrn,"BTN",3,3);
     button btn2=newButton(color("ButtonClickable",2,bold,invert),1,50,5);
     //insertStr(scrn,btn2.content,btn2.x,btn2.y);
-    display(scrn);
+    
     printf("%s\n%sSome text\e[0m\n",color("Hello, World!",4,bold,fg256Colors,5,80),rgb(255, 0, 208));
     printf("%s\n",toUTF8(box(5,"Abcd","Bar","Dooodoo","Daddy","FFFF")));
     printf("%s\n",toUTF8(box(5,"Abcd","Bar","Dooodoo","Daddy","FFFF")));
@@ -76,7 +79,7 @@ int main(int argc, const char **argv) {
 
     //funn();
     init();
-    mainMain();
+    mainMenu();
     printf("%s\n",color("ButtonClickable",2,bold,invert));
     colorset clrs=color_m("ButtonClickable",2,2,2,bold,bgCyan);
     color_m("ButtonVVVV",5,5,2,bold,bgGreen);
@@ -85,5 +88,29 @@ int main(int argc, const char **argv) {
     print(scrn);
     printf("\n%s\n%s\n",toUTF8(box_db(2,"Elm","Frac")),toUTF8(box_db(3,"1","2","3")));
     //sha_256();
+    canvas canv=newCanvas(dim.cols,dim.rows);
+    for(int i=0;i<50;i++){
+        clearCanvas(canv,'\x20');
+        termCtrl(eraseDisplay,2);
+        button btn = newButton(box_db(2,"Hello","World!"),0,i,7);
+        insertStrc(canv,btn.content,i,7);
+        drawLine(&canv,0,0,i,6);
+        drawLine(&canv,dim.cols-1,0,i,6);
+        display(canv,primScreen);
+        //usleep(1e5);
+    }
+    void showBtn(int x, int y){
+        clearCanvas(canv,0x20);
+        termCtrl(eraseDisplay,2);
+        x-=btn.cols/2+2;
+        y-=btn.rows/2+1;
+        button btn = newButton(box_db(1,"Button"),0,x,y);
+        insertStrc(canv,btn.content,x,y);
+        drawLine(&canv,dim.cols/2,0,x+btn.cols/2,y-1);
+        display(canv,primScreen);
+    }
+    showBtn(50,5);
+    addEventListener(mouseMove,0,0,showBtn);
+    mainMenu();
     return 0;
 }

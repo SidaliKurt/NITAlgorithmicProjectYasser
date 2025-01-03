@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <termios.h>
@@ -61,8 +62,12 @@ const rndrConst AS_BOX_DN_HL_DB = { .text="\xE2\x95\xA9", .code=223 }; // ╩
 const rndrConst AS_BOX_VL_HL_DB = { .text="\xE2\x94\xBC", .code=222 }; // ╬
 const rndrConst AS_CONGRUENCE = { .text="\xE2\x89\xA1", .code=221 }; // ≡
 const rndrConst AS_UNDERSCORE = { .text="\xE2\x80\x96", .code=220 }; // ‗
+const rndrConst AS_ARROW_UP_LT = { .text="\xE2\x86\x96", .code=219 }; // ↖
+const rndrConst AS_ARROW_UP_RT = { .text="\xE2\x86\x97", .code=218 }; // ↗
+const rndrConst AS_ARROW_DN_RT = { .text="\xE2\x86\x98", .code=217 }; // ↘
+const rndrConst AS_ARROW_DN_LT = { .text="\xE2\x86\x99", .code=216 }; // ↙
 const rndrConst rndrConsts[] = {
-    AS_ARROW_UP, AS_ARROW_DN, AS_ARROW_LT, AS_ARROW_RT, AS_SHADE_MIN, AS_SHADE_MID, AS_SHADE_FUL, AS_BLOCK_FUL, AS_BLOCK_UP, AS_BLOCK_DN, AS_BLOCK_RT, AS_BLOCK_LT, AS_BOX_VL, AS_BOX_HL, AS_BOX_UP_RT, AS_BOX_DN_RT, AS_BOX_UP_LT, AS_BOX_DN_LT, AS_BOX_VL_RT, AS_BOX_VL_LT, AS_BOX_UP_HL, AS_BOX_DN_HL, AS_BOX_VL_HL, AS_BOX_VL_DB, AS_BOX_HL_DB, AS_BOX_UP_RT_DB, AS_BOX_DN_RT_DB, AS_BOX_UP_LT_DB, AS_BOX_DN_LT_DB, AS_BOX_VL_RT_DB, AS_BOX_VL_LT_DB, AS_BOX_UP_HL_DB, AS_BOX_DN_HL_DB, AS_BOX_VL_HL_DB, AS_CONGRUENCE, AS_UNDERSCORE
+    AS_ARROW_UP, AS_ARROW_DN, AS_ARROW_LT, AS_ARROW_RT, AS_SHADE_MIN, AS_SHADE_MID, AS_SHADE_FUL, AS_BLOCK_FUL, AS_BLOCK_UP, AS_BLOCK_DN, AS_BLOCK_RT, AS_BLOCK_LT, AS_BOX_VL, AS_BOX_HL, AS_BOX_UP_RT, AS_BOX_DN_RT, AS_BOX_UP_LT, AS_BOX_DN_LT, AS_BOX_VL_RT, AS_BOX_VL_LT, AS_BOX_UP_HL, AS_BOX_DN_HL, AS_BOX_VL_HL, AS_BOX_VL_DB, AS_BOX_HL_DB, AS_BOX_UP_RT_DB, AS_BOX_DN_RT_DB, AS_BOX_UP_LT_DB, AS_BOX_DN_LT_DB, AS_BOX_VL_RT_DB, AS_BOX_VL_LT_DB, AS_BOX_UP_HL_DB, AS_BOX_DN_HL_DB, AS_BOX_VL_HL_DB, AS_CONGRUENCE, AS_UNDERSCORE, AS_ARROW_UP_LT, AS_ARROW_UP_RT, AS_ARROW_DN_RT, AS_ARROW_DN_LT
 };
 const char* AS_ANGLE_LT = "\xC2\xAB"; // «
 const char* AS_ANGLE_RT = "\xC2\xBB"; // »
@@ -266,7 +271,10 @@ enum mouseStates {
     mouseClick,
     mouseMiddle,
     mouseContext,
-    mouseDown
+    mouseUp,
+    mouseMove,
+    mouseScrollUp=64,
+    mouseScrollDown
 };
 
 void newError(char *str,...){
@@ -356,18 +364,6 @@ strInf screenDim(){
 }
 screen primScreen;
 screen secdScreen;
-typedef struct{
-    unsigned int text:24;
-}char24_t;
-char24_t char24(char *str){
-    char24_t res;
-    res.text=0;
-    for(int i=0;i<2;i++){
-        res.text<<=8;
-        res.text|=str[i];
-    }
-    return res;
-}
 
 //Canvas properties
 typedef struct{
@@ -392,7 +388,13 @@ canvas newCanvas(int w,int h){
     canv.len=w*h;
     return canv;
 }
-
+void clearCanvas(canvas canv, char fill){
+    for(int i=0;i<canv.h;i++){
+        for(int j=0;j<canv.w;j++){
+            canv.buf[i*canv.w+j]=fill;
+        }
+    }
+}
 char *toUTF8(unsigned char *str){
     strInf inf=getStrInf((char*) str);
     char *res=malloc(inf.len*3+1);
@@ -409,6 +411,53 @@ char *toUTF8(unsigned char *str){
         }
     }
     return res;
+}
+void drawLine(canvas *canv, int x1, int y1, int x2, int y2) {
+    if (x1 < 0 || x1 >= canv->w || x2 < 0 || x2 >= canv->w || y1 < 0 || y1 >= canv->h || y2 < 0 || y2 >= canv->h) {
+        printf("Error: Points out of canvas bounds.\n");
+        return;
+    }
+    int dx = abs(x2 - x1);
+    int dy = abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx - dy;
+    int err2;
+    char symbol = '-';
+    while (1) {
+        // Precompute slope-dependent character selection
+        if (dx > dy) {
+            symbol = sy > 0 && sx < 0? '/' : '\\'; // Gentle slope
+        } else if (dy > dx) {
+            symbol = '|'; // Steep slope
+        }
+        // Draw point
+        canv->buf[y1 * canv->w + x1] = symbol;
+        // Exit condition
+        if (x1 == x2 && y1 == y2) break;
+        err2 = 2 * err;
+        if (err2 > -dy) {
+            err -= dy;
+            x1 += sx;
+        }
+        if (err2 < dx) {
+            err += dx;
+            y1 += sy;
+        }
+    }
+}
+
+
+
+void display(canvas canvasFrom,screen screenTo){
+    sprintf(screenTo.buf,toUTF8((unsigned char*)canvasFrom.buf));
+    printf(screenTo.buf);
+    fflush(stdout);
+}
+
+void display_m(screen scrn){
+    printf(scrn.buf);
+    fflush(stdout);
 }
 
 //Button properties
@@ -436,7 +485,7 @@ button newButton(char *cont, int id, int x, int y){
         .yEnd=y+inf.rows-1
     };
     buttons[id]=btn;
-    printf("Button specs: x:%d, y:%d, xend:%d, yend:%d, id:%d, cols:%d, rows:%d\n",x,y,btn.xEnd,btn.yEnd,id,btn.cols,btn.rows);
+    //printf("Button specs: x:%d, y:%d, xend:%d, yend:%d, id:%d, cols:%d, rows:%d\n",x,y,btn.xEnd,btn.yEnd,id,btn.cols,btn.rows);
     return btn;
 }
 void handleClick(int x, int y){
@@ -632,55 +681,91 @@ void insertStr(screen scrn,char *str,int x,int y){
     }
 }
 
-void addEventListener(int ev, int x, int y){
+void insertStrc(canvas canv,char *str,int x,int y){
+    strInf inf=getStrInf(str);
+    if(x>canv.w||y>canv.h){
+        newError("Out of bounds: (%d,%d) in canvas of %dx%d",x,y,canv.w,canv.h);
+        return;
+    }
+    int j=0;
+    for(int i=0;i<inf.len;i++){
+        if(str[i]=='\n'){
+            j+=canv.w-inf.cols;
+            continue;
+        }
+        canv.buf[canv.w*y+x+j+i]=str[i];
+    }
+}
+
+void moveCanvas(canvas canv,screen scrn, int dx, int dy){
+    char *buf=toUTF8((unsigned char*)canv.buf);
+    for(int j=0;j<scrn.h;j++){
+        for(int i=0;i<scrn.w;i++){
+            scrn.buf[scrn.w*j+i]=buf[canv.w*(j+dy)+i+dx];
+        }
+    }
+}
+
+void moveStr(canvas canv,int dx, int dy){
+
+}
+
+int ALLOW_MOUSE=1;
+void addEventListener(int ev, int xx, int yy, void (*callback)(int,int)){
     printf(TRACK_MOUSE_EN);
+    int isDrag=0;
+    int lastPos[2];
+    ALLOW_MOUSE=1;
+    printf("Scroll the mouse or press 'q' to quit.\n");
     char buf[32];
-    while (1) {
-        int n = read(STDIN_FILENO, buf, sizeof(buf));
-        if (n > 0) {
+    while (ALLOW_MOUSE) {
+        if (read(STDIN_FILENO, buf, sizeof(buf))) {//debugBuffer(buf);
             if (buf[0] == '\033' && buf[1] == '[' && buf[2] == 'M') {
                 // Parse mouse event
                 int button = buf[3] - 32;
                 int x = buf[4] - 32;
                 int y = buf[5] - 32;
-                printf("Task Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
-            }
-            if (buf[0] == 'q') {
+                if (button == mouseScrollUp) { // Scroll up (button code: 64)
+                    //printf("Scroll up detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                } else if (button == mouseScrollDown) { // Scroll down (button code: 65)
+                    //printf("Scroll down detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                } else if (button == mouseClick) { // Left click (button code: 96)
+                    //printf("Left click detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                } else if (button == mouseUp){
+                    //printf("Mouse up detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                    if(isDrag&&(x-lastPos[0]||y-lastPos[1])){
+                        //printf("Dragged by: (%d,%d)\n",x-lastPos[0],y-lastPos[1]);
+                        callback(x,y);
+                    }else{
+                        lastPos[0]=x;
+                        lastPos[1]=y;
+                    }
+                    isDrag=!isDrag;
+                } else if (button == mouseContext) { // Right click (button code: 96)
+                    //printf("Right click detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                } else if (button == mouseMiddle) { // Middle click (button code: 97)
+                    //printf("Middle click detected at (%d, %d)\n", x, y);
+                    callback(x,y);
+                } else {
+                    //printf("Mouse moved: Button=%d, X=%d, Y=%d\n", button, x, y);
+                    if(ev==mouseMove){
+                        callback(x,y);
+                    }
+                }
+                //printf("Task Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
+            }else if (buf[0] == 'q') {
                 break;
             }
         }
     }
+    ALLOW_MOUSE=0;
     printf(TRACK_MOUSE_DS);
-}
-
-void display(screen scrn){
-    printf("scrnas of %dx%d:\n%s",scrn.w,scrn.h,scrn.buf);
-    fflush(stdout);
-}
-
-void *task1(void *arg){
-    usleep(1e6);
-    printf("Task 1\n");
-    usleep(1e6);
-    return NULL;
-}
-
-void *task2(void *arg){
-    usleep(1e6/2);
-    printf("Task 2\n");
-    usleep(1e6/2);
-    return NULL;
-}
-
-void init(){
-    signal(SIGINT,handleSignal);
-    pthread_t thread1, thread2;
-    pthread_create(&thread1, NULL, task1, NULL);
-    pthread_create(&thread2, NULL, task2, NULL);
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
-    enableRawMode();
-    atexit(disableRawMode);
+    /*
     printf(TRACK_MOUSE_EN);
     
     int isDrag=0;
@@ -721,4 +806,35 @@ void init(){
     }
 
     printf(TRACK_MOUSE_DS);
+    */
+}
+
+void *task1(void *arg){
+    usleep(1e6);
+    printf("Task 1\n");
+    usleep(1e6);
+    return NULL;
+}
+
+void *task2(void *arg){
+    usleep(1e6/2);
+    printf("Task 2\n");
+    usleep(1e6/2);
+    return NULL;
+}
+
+void init(){
+    atexit(disableRawMode);
+    signal(SIGINT,handleSignal);
+    pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, task1, NULL);
+    pthread_create(&thread2, NULL, task2, NULL);
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+    enableRawMode();
+    void callback(int x, int y){
+        
+    }
+    addEventListener(1,1,1,callback);
+    
 }
