@@ -70,15 +70,105 @@ void btreeMain(){
 
 }
 
+void showBlock();
+void pow_wait_next(){
+    void onClick(int ev, int x, int y){printf("\n\e[1A");
+        if(ev==mouseClick&&x>30&&x<40&&y>3&&y<8){
+            ALLOW_MOUSE=0;
+            showBlock();
+        }
+    }
+    addEventListener(onClick);
+}
+
+canvas powCanv;
+void showBlock(){
+    block *blk=lastBlock=getLastBlock(firstBlock);
+    termCtrl(eraseDisplay,2);
+    enableRawMode();
+    clearCanvas(powCanv,0x20);
+    char b[3];
+    sprintf(b,"%c%c",CV_BLOCK_FUL,CV_BLOCK_FUL);
+    insertStrc(powCanv,b,0,1);
+    insertStrc(powCanv,box_db(1," #0 "),2,0);
+    int d=2;
+    char p[5];
+    for(int i=1;i<blklen(firstBlock);i++){
+        d+=6;
+        fill(powCanv,CV_CONGRUENCE,d,1,d+4,1);
+        d+=5;
+        sprintf(p," #%d ",i);
+        insertStrc(powCanv,box_db(1,p),d,0);
+    }
+    /*fill(powCanv,CV_CONGRUENCE,2+6,1,12,1);
+    insertStrc(powCanv,box_db(1," #2 "),13,0);
+    fill(powCanv,CV_CONGRUENCE,13+6,1,13+6+5,1);
+    insertStrc(powCanv,box_db(1," #3 "),13+6+5,0);*/
+    fill(powCanv,CV_UNDERSCORE,0,3,primScreen.w-1,3);//separator
+    insertStrc(powCanv,box_db(2,"Block No:"," # "),1,4);
+    insertStrc(powCanv,box_db(1," MINE "),30,4);
+    insertStrc(powCanv,box_db(2,"Nounce:","            "),53,4);
+    insertStrc(powCanv,"Previous Hash: ",1,7);
+    insertStrc(powCanv,"Timestamp: ",1,8);
+    insertStrc(powCanv,box(2,"Transactions:","                                                          "),1,9);
+    insertStrc(powCanv,box_db(2,"Hash:","                                                                  "),1,12);
+    display(powCanv,primScreen);
+    cursorPos(14,6);
+    printf("%d\n",blk->id);
+    cursorPos(17,8);
+    printf("%s\n",blk->prevHash);
+    cursorPos(13,9);
+    printf("%s\n", ctime(&(blk->timestamp)));
+    void onClick(int ev, int x, int y){printf("\n\e[1A");
+        if(ev==mouseClick){
+            if(x<74&&y>9&&y<13){
+                disableRawMode();
+                cursorPos(18,11);
+                //printf("Transaction\n");
+                
+                //cursorPos(18,11);//re op
+                char trans[66];
+                scanf("%s",&trans);
+                blk->transactions=trans;
+                enableRawMode();
+            }
+            if(x>30&&x<40&&y>3&&y<8){
+                disableRawMode();
+                printf(TRACK_MOUSE_DS);
+                cursorPos(32,6);
+                printf("\e[%d;%dm MINE\e[0m\n",blink,fgLightRed);
+                void onChange(int nonce, uint8_t *digest){
+                    cursorPos(64,6);
+                    printf("%d\n",nonce);
+                    cursorPos(10,14);
+                    for (int i = 0; i < 32; i++){
+                        printf("%02x", digest[i]);
+                    } 
+                }
+                mineBlock(blk,onChange);
+                cursorPos(64,6);
+                printf("%d\n",blk->nonce);
+                cursorPos(10,14);
+                printf("%s\n",blk->hash);
+                cursorPos(32,6);
+                printf("\e[1;%dm NEXT\e[0m\n",fgLightGreen);
+                ALLOW_MOUSE=0;
+                pow_wait_next();
+            }
+            
+        }
+    }
+    addEventListener(onClick);
+}
+
 void powMain(){
     termCtrl(eraseDisplay,2);
-    printf("PoW\n");
     disableRawMode();
-    canvas canv = newCanvas(primScreen.w,primScreen.h);
-    clearCanvas(canv,0x20);
-    int l=insertStrc(canv,"Set Difficulty: ",0,1);
-    insertStrc(canv,inputBox(5,1),l+1,0);
-    display(canv,primScreen);
+    powCanv = newCanvas(primScreen.w,primScreen.h);
+    clearCanvas(powCanv,0x20);
+    int l=insertStrc(powCanv,"Set Difficulty: ",0,1);
+    insertStrc(powCanv,inputBox(5,1),l+1,0);
+    display(powCanv,primScreen);
     cursorPos(l+3,2);
     scanf("%u",&difficulty);
     if(difficulty>64){
@@ -86,15 +176,9 @@ void powMain(){
         sleep(5);
         powMain();
     }
-    termCtrl(eraseDisplay,2);
-    enableRawMode();
-    clearCanvas(canv,0x20);
-    char b[3];
-    sprintf(b,"%c%c",CV_BLOCK_FUL,CV_BLOCK_FUL);
-    insertStrc(canv,b,0,1);
-    l=insertStrc(canv,box_db(1," #1 "),2,0);
-    drawLine(&canv,l+3,1,l+10,1);
-    display(canv,primScreen);
+    firstBlock=newBlock(NULL);
+    showBlock();
+    
 }
 
 void mainMenu(){

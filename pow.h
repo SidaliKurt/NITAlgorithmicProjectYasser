@@ -16,6 +16,30 @@ typedef struct block{
 } block;
 block blockChain[100];
 block *firstBlock;
+block *lastBlock;
+
+int blklen(block *chain){
+    int i=0;
+    if(chain==NULL){
+        return i;
+    }
+    i++;
+    while (chain->next != NULL){
+        chain = chain->next;
+        i++;
+    }
+    return i;
+}
+
+block *getLastBlock(block *chain){
+    if(chain==NULL){
+        return NULL;
+    }
+    while (chain->next != NULL){
+        chain = chain->next;
+    }
+    return chain;
+}
 
 int verifyLeadingZeros(uint8_t *digest, int leadingZeros) { 
     int bytesToCheck = leadingZeros / 2;
@@ -45,25 +69,6 @@ void setHash(block *blk, uint8_t *digest){
     }
 }
 
-void mineBlock(block *blk){
-    char *data = (char *)malloc(501);
-    uint8_t digest[32];
-    char timestamp[20];
-    strftime(timestamp, sizeof(timestamp), "%Y%m%d::%H:%M:%S", (struct tm *)localtime(&(blk->timestamp)));
-    int nonce = 0;
-    while (1){
-        sprintf(data, "%s%s%s%d", blk->prevHash, blk->transactions, timestamp, nonce);
-        sha256((const uint8_t *)data, strlen(data), digest);
-        nonce++;
-        if (verifyLeadingZeros(digest, difficulty)){
-            break;
-        }
-    }
-    blk->nonce = nonce;
-    setHash(blk, digest);
-    free(data);
-}
-
 block *newBlock(block *chain){
     block *blk = (block *)malloc(sizeof(block));
     blk->hash = NULL;
@@ -86,7 +91,26 @@ block *newBlock(block *chain){
     return blk;
 }
 
-
+void mineBlock(block *blk,void (*callback)(int,uint8_t*)){
+    char *data = (char *)malloc(501);
+    uint8_t digest[32];
+    char timestamp[20];
+    strftime(timestamp, sizeof(timestamp), "%Y%m%d::%H:%M:%S", (struct tm *)localtime(&(blk->timestamp)));
+    int nonce = 0;
+    while (1){
+        sprintf(data, "%s%s%s%d", blk->prevHash, blk->transactions, timestamp, nonce);
+        sha256((const uint8_t *)data, strlen(data), digest);
+        callback(nonce,digest);
+        nonce++;
+        if (verifyLeadingZeros(digest, difficulty)){
+            break;
+        }
+    }
+    blk->nonce = nonce;
+    setHash(blk, digest);
+    blk->next=newBlock(blk);
+    free(data);
+}
 
 void printBlock(block *blk){
     printf("Block: id:%d\n",blk->id);

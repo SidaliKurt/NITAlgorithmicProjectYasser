@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <time.h>
+//#include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
@@ -59,9 +60,9 @@ const rndrConst AS_BOX_VL_RT_DB = { .text="\xE2\x95\xA0", .code=226 }; // ╠
 const rndrConst AS_BOX_VL_LT_DB = { .text="\xE2\x95\xA3", .code=225 }; // ╣
 const rndrConst AS_BOX_UP_HL_DB = { .text="\xE2\x95\xA6", .code=224 }; // ╦
 const rndrConst AS_BOX_DN_HL_DB = { .text="\xE2\x95\xA9", .code=223 }; // ╩
-const rndrConst AS_BOX_VL_HL_DB = { .text="\xE2\x94\xBC", .code=222 }; // ╬
+const rndrConst AS_BOX_VL_HL_DB = { .text="\xE2\x95\xAB", .code=222 }; // ╬
 const rndrConst AS_CONGRUENCE = { .text="\xE2\x89\xA1", .code=221 }; // ≡
-const rndrConst AS_UNDERSCORE = { .text="\xE2\x80\x96", .code=220 }; // ‗
+const rndrConst AS_UNDERSCORE = { .text="\xE2\x80\x97", .code=220 }; // ‗
 const rndrConst AS_ARROW_UP_LT = { .text="\xE2\x86\x96", .code=219 }; // ↖
 const rndrConst AS_ARROW_UP_RT = { .text="\xE2\x86\x97", .code=218 }; // ↗
 const rndrConst AS_ARROW_DN_RT = { .text="\xE2\x86\x98", .code=217 }; // ↘
@@ -264,6 +265,7 @@ void resetTerminal(){
 void handleSignal(int sig){
     switch (sig){
         case SIGINT:
+            termCtrl(eraseDisplay,2);
             printf("Caught Interruption Signal, Exitting...\n");
             exit(1);
             break;
@@ -516,6 +518,7 @@ void enableRawMode() {
     tcgetattr(STDIN_FILENO, &raw);
     raw.c_lflag &= ~(ECHO | ICANON); // Disable canonical mode and echo
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    printf(TRACK_MOUSE_EN);
 }
 
 void disableRawMode() {
@@ -523,6 +526,7 @@ void disableRawMode() {
     tcgetattr(STDIN_FILENO, &raw);
     raw.c_lflag |= (ECHO | ICANON); // Re-enable canonical mode and echo
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    printf(TRACK_MOUSE_DS);
 }
 
 char *box(int n, ...){
@@ -747,6 +751,7 @@ void moveStr(canvas canv,int dx, int dy){
 
 int ALLOW_MOUSE=1;
 void addEventListener(void (*callback)(int,int,int)){
+    enableRawMode();
     printf(TRACK_MOUSE_EN);
     int isDrag=0;
     int lastPos[2];
@@ -876,10 +881,16 @@ void *task2(void *arg){
     return NULL;
 }
 
+/*void setNonBlockingInput() {
+    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+}*/
+
 void init(){
     atexit(disableRawMode);
     signal(SIGINT,handleSignal);
     enableRawMode();
+    
     /*
     pthread_t thread1, thread2;
     pthread_create(&thread1, NULL, task1, NULL);
