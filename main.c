@@ -65,9 +65,22 @@ void func(int n, ...){
     }
 }
 
+canvas btreeCanv;
 void btreeMain(){
-    printf("BTree\n");
-
+    termCtrl(eraseDisplay,2);
+    btreeCanv=newCanvas(primScreen.w,primScreen.h);
+    BTreeNode* root = NULL;
+    clearCanvas(btreeCanv,0x20);
+    
+    insertStrc(btreeCanv,box(2,"Input:","     "),1,0);
+    insertStrc(btreeCanv,box_db(1,"Insert"),16,0);
+    insertStrc(btreeCanv,box_db(1,"Remove"),25,0);
+    insertStrc(btreeCanv,box_db(1,"Search"),34,0);
+    insertStrc(btreeCanv,box_db(1,"Traverse"),43,0);
+    fill(btreeCanv,CV_UNDERSCORE,0,3,primScreen.w-1,3);
+    display(btreeCanv,primScreen);
+    
+    
 }
 
 void showBlock();
@@ -100,11 +113,7 @@ void showBlock(){
         sprintf(p," #%d ",i);
         insertStrc(powCanv,box_db(1,p),d,0);
     }
-    /*fill(powCanv,CV_CONGRUENCE,2+6,1,12,1);
-    insertStrc(powCanv,box_db(1," #2 "),13,0);
-    fill(powCanv,CV_CONGRUENCE,13+6,1,13+6+5,1);
-    insertStrc(powCanv,box_db(1," #3 "),13+6+5,0);*/
-    fill(powCanv,CV_UNDERSCORE,0,3,primScreen.w-1,3);//separator
+    fill(powCanv,CV_UNDERSCORE,0,3,primScreen.w-1,3);
     insertStrc(powCanv,box_db(2,"Block No:"," # "),1,4);
     insertStrc(powCanv,box_db(1," MINE "),30,4);
     insertStrc(powCanv,box_db(2,"Nounce:","            "),53,4);
