@@ -154,7 +154,7 @@ void sha256_process(const uint8_t *message, uint32_t *hash, size_t len) {
                    (padded[i + t * 4 + 1] << 16) |
                    (padded[i + t * 4 + 2] << 8) |
                    (padded[i + t * 4 + 3]);
-            printf("W[%d]=%x\n",t,W[t]);
+            //printf("W[%d]=%x\n",t,W[t]);
         }
         for (int t = 16; t < 64; t++) {
             W[t] = OMEGA1(W[t - 2]) + W[t - 7] + OMEGA0(W[t - 15]) + W[t - 16];

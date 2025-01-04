@@ -103,39 +103,46 @@ const char* AS_EXP_THR = "\xC2\xB3"; // ³
 const char* AS_NBSP = "\xC2\xA0"; //  
 const char AS_NEUTRAL = '\x01';
 enum {
-    CV_SHADE_MIN = 176, // ░
-    CV_SHADE_MID, // ▒
-    CV_SHADE_FUL, // ▓
-    CV_BOX_VL, // │
-    CV_BOX_VL_LT, // ┤
-    CV_BOX_VL_LT_DB = 185, // ╣
-    CV_BOX_VL_DB, // ║
-    CV_BOX_UP_RT_DB, // ╗
-    CV_BOX_DN_RT_DB, // ╝
-    CV_BOX_UP_RT = 191, // ┐
-    CV_BOX_DN_LT, // └
-    CV_BOX_DN_HL, // ┴
-    CV_BOX_UP_HL, // ┬
-    CV_BOX_VL_RT, // ├
-    CV_BOX_HL, // ─
-    CV_BOX_VL_HL, // ┼
-    CV_BOX_DN_LT_DB = 200, // ╚
-    CV_BOX_UP_LT_DB, // ╔
+    CV_ARROW_DN_LT = 216, // ↙
+    CV_ARROW_DN_RT, // ↘
+    CV_ARROW_UP_RT, // ↗
+    CV_ARROW_UP_LT, // ↖
+    CV_UNDERSCORE, // ‗
+    CV_CONGRUENCE, // ≡ 
+    CV_BOX_VL_HL_DB, // ╬
     CV_BOX_DN_HL_DB, // ╩
     CV_BOX_UP_HL_DB, // ╦
+    CV_BOX_VL_LT_DB, // ╣
     CV_BOX_VL_RT_DB, // ╠
+    CV_BOX_DN_LT_DB, // ╚
+    CV_BOX_UP_LT_DB, // ╔
+    CV_BOX_DN_RT_DB, // ╝
+    CV_BOX_UP_RT_DB, // ╗
     CV_BOX_HL_DB, // ═
-    CV_BOX_VL_HL_DB, // ╬
-    CV_BOX_DN_RT = 217, // ┘
+    CV_BOX_VL_DB, // ║
+    CV_BOX_VL_HL, // ┼
+    CV_BOX_DN_HL, // ┴
+    CV_BOX_UP_HL, // ┬
+    CV_BOX_VL_LT, // ┤
+    CV_BOX_VL_RT, // ├
+    CV_BOX_DN_LT, // └
     CV_BOX_UP_LT, // ┌
-    CV_BLOCK_FUL, // █
+    CV_BOX_DN_RT, // ┘
+    CV_BOX_UP_RT, // ┐
+    CV_BOX_HL, // ─
+    CV_BOX_VL, // │
+    CV_BLOCK_LT, // ▐
+    CV_BLOCK_RT, // ▌
     CV_BLOCK_DN, // ▄
-    CV_BLOCK_UP = 223, // ▀
-    CV_MACRON = 238, // ¯
-    CV_ACUTE, // ´
-    CV_CONGRUENCE, // ≡
-    CV_PLUS_MINUS, // ±
-    CV_UNDERSCORE // ‗
+    CV_BLOCK_UP, // ▀
+    CV_BLOCK_FUL, // █
+    CV_SHADE_FUL, // ▓
+    CV_SHADE_MID, // ▒
+    CV_SHADE_MIN, // ░
+    CV_ARROW_RT, // →
+    CV_ARROW_LT, // ←
+    CV_ARROW_DN, // ↓
+    CV_ARROW_UP, // ↑
 };
 
 enum {
@@ -273,6 +280,14 @@ enum mouseStates {
     mouseContext,
     mouseUp,
     mouseMove,
+    mouseDrag,
+    otherChars,
+    kbdArrowUp=41,
+    kbdArrowDown,
+    kbdArrowRight,
+    kbdArrowLeft,
+    kbdEnter,
+    kbdBackspace,
     mouseScrollUp=64,
     mouseScrollDown
 };
@@ -588,6 +603,25 @@ char *box_db(int n, ...){
     return res;
 }
 
+char *inputBox(int cols, int rows){
+    char *str=malloc(cols+rows+1);
+    for(int i=0;i<cols;i++) str[i]=0x20;
+    for(int i=0;i<rows-1;i++) str[i]='\n';
+    return box(1,str);
+}
+
+void fill(canvas canv,char fil, int x1, int y1, int x2, int y2){
+    if(x1<0||x1>=canv.w||x2<0||x2>=canv.w||y1<0||y1>=canv.h||y2<0||y2>=canv.h){
+        newError("Out of bounds: (%d,%d) to (%d,%d) in canvas of %dx%d",x1,y1,x2,y2,canv.w,canv.h);
+        return;
+    }
+    for(int i=y1;i<=y2;i++){
+        for(int j=x1;j<=x2;j++){
+            canv.buf[i*canv.w+j]=fil;
+        }
+    }
+}
+
 char *rgb(int r,int g,int b){
     char *res=malloc(21);
     sprintf(res,"\e[38;2;%d;%d;%dm",r,g,b);
@@ -681,11 +715,11 @@ void insertStr(screen scrn,char *str,int x,int y){
     }
 }
 
-void insertStrc(canvas canv,char *str,int x,int y){
+int insertStrc(canvas canv,char *str,int x,int y){
     strInf inf=getStrInf(str);
     if(x>canv.w||y>canv.h){
         newError("Out of bounds: (%d,%d) in canvas of %dx%d",x,y,canv.w,canv.h);
-        return;
+        return 0;
     }
     int j=0;
     for(int i=0;i<inf.len;i++){
@@ -695,6 +729,7 @@ void insertStrc(canvas canv,char *str,int x,int y){
         }
         canv.buf[canv.w*y+x+j+i]=str[i];
     }
+    return inf.len;
 }
 
 void moveCanvas(canvas canv,screen scrn, int dx, int dy){
@@ -711,56 +746,74 @@ void moveStr(canvas canv,int dx, int dy){
 }
 
 int ALLOW_MOUSE=1;
-void addEventListener(int ev, int xx, int yy, void (*callback)(int,int)){
+void addEventListener(void (*callback)(int,int,int)){
     printf(TRACK_MOUSE_EN);
     int isDrag=0;
     int lastPos[2];
     ALLOW_MOUSE=1;
-    printf("Scroll the mouse or press 'q' to quit.\n");
+    //printf("Scroll the mouse or press 'q' to quit.\n");
     char buf[32];
+    int button,x,y;
     while (ALLOW_MOUSE) {
         if (read(STDIN_FILENO, buf, sizeof(buf))) {//debugBuffer(buf);
-            if (buf[0] == '\033' && buf[1] == '[' && buf[2] == 'M') {
-                // Parse mouse event
-                int button = buf[3] - 32;
-                int x = buf[4] - 32;
-                int y = buf[5] - 32;
-                if (button == mouseScrollUp) { // Scroll up (button code: 64)
-                    //printf("Scroll up detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                } else if (button == mouseScrollDown) { // Scroll down (button code: 65)
-                    //printf("Scroll down detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                } else if (button == mouseClick) { // Left click (button code: 96)
-                    //printf("Left click detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                } else if (button == mouseUp){
-                    //printf("Mouse up detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                    if(isDrag&&(x-lastPos[0]||y-lastPos[1])){
-                        //printf("Dragged by: (%d,%d)\n",x-lastPos[0],y-lastPos[1]);
-                        callback(x,y);
-                    }else{
-                        lastPos[0]=x;
-                        lastPos[1]=y;
+            if (buf[0] == '\033' && buf[1] == '['){
+                if(buf[2] == 'M') {
+                    button = buf[3] - 32;
+                    x = buf[4] - 32;
+                    y = buf[5] - 32;
+                    if (button == mouseScrollUp) {
+                        //printf("Scroll up detected at (%d, %d)\n", x, y);
+                        callback(mouseScrollUp,x,y);
+                    } else if (button == mouseScrollDown) {
+                        //printf("Scroll down detected at (%d, %d)\n", x, y);
+                        callback(mouseScrollDown,x,y);
+                    } else if (button == mouseClick) {
+                        //printf("Left click detected at (%d, %d)\n", x, y);
+                        callback(mouseClick,x,y);
+                    } else if (button == mouseUp){
+                        //printf("Mouse up detected at (%d, %d)\n", x, y);
+                        if(isDrag&&(x-lastPos[0]||y-lastPos[1])){
+                            //printf("Dragged by: (%d,%d)\n",x-lastPos[0],y-lastPos[1]);
+                            callback(mouseDrag,x,y);
+                        }else{
+                            lastPos[0]=x;
+                            lastPos[1]=y;
+                        }
+                        isDrag=!isDrag;
+                    } else if (button == mouseContext) {
+                        //printf("Right click detected at (%d, %d)\n", x, y);
+                        callback(mouseContext,x,y);
+                    } else if (button == mouseMiddle) {
+                        //printf("Middle click detected at (%d, %d)\n", x, y);
+                        callback(mouseMiddle,x,y);
+                    } else {
+                        //printf("Mouse moved: Button=%d, X=%d, Y=%d\n", button, x, y);
+                        callback(mouseMove,x,y);
                     }
-                    isDrag=!isDrag;
-                } else if (button == mouseContext) { // Right click (button code: 96)
-                    //printf("Right click detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                } else if (button == mouseMiddle) { // Middle click (button code: 97)
-                    //printf("Middle click detected at (%d, %d)\n", x, y);
-                    callback(x,y);
-                } else {
-                    //printf("Mouse moved: Button=%d, X=%d, Y=%d\n", button, x, y);
-                    if(ev==mouseMove){
-                        callback(x,y);
-                    }
+                    //printf("Task Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
+                }else if(buf[2]==0x41){
+                    //printf("Mouse moved up\n");
+                    callback(kbdArrowUp,x,y);
+                }else if(buf[2]==0x42){
+                    //printf("Mouse moved down\n");
+                    callback(kbdArrowDown,x,y);
+                }else if(buf[2]==0x43){
+                    //printf("Mouse moved right\n");
+                    callback(kbdArrowRight,x,y);
+                }else if(buf[2]==0x44){
+                    //printf("Mouse moved left\n");
+                    callback(kbdArrowLeft,x,y);
                 }
-                //printf("Task Mouse event: Button=%d, X=%d, Y=%d\n", button, x, y);
-            }else if (buf[0] == 'q') {
-                break;
+            }else if(buf[0]==0xa){
+                //printf("Enter pressed\n");
+                callback(kbdEnter,x,y);
+            }else if(buf[0]==0x7f){
+                //printf("Backspace pressed\n");
+                callback(kbdBackspace,x,y);
+            }else{
+                callback(otherChars,x,y);
             }
+            
         }
     }
     ALLOW_MOUSE=0;
@@ -826,15 +879,13 @@ void *task2(void *arg){
 void init(){
     atexit(disableRawMode);
     signal(SIGINT,handleSignal);
+    enableRawMode();
+    /*
     pthread_t thread1, thread2;
     pthread_create(&thread1, NULL, task1, NULL);
     pthread_create(&thread2, NULL, task2, NULL);
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
-    enableRawMode();
-    void callback(int x, int y){
-        
-    }
-    addEventListener(1,1,1,callback);
     
+    */
 }
